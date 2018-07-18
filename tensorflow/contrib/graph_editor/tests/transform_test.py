@@ -165,6 +165,24 @@ class TransformTest(test.TestCase):
     self.assertNear(c_val, 2.001, ERROR_TOLERANCE)
     self.assertNear(c_new_val, 3.001, ERROR_TOLERANCE)
 
+  def test_graph_replace_while_loop(self):
+    ops.reset_default_graph()
+    a = constant_op.constant(1, name="a")
+    max_index = constant_op.constant(10)
+    index_start = constant_op.constant(1)
+    sum_start = constant_op.constant(0)
+    _, result = control_flow_ops.while_loop(
+        cond=lambda i, unused_s: i <= max_index,
+        body=lambda i, s: (i + 1, s + a),
+        loop_vars=[index_start, sum_start])
+    a_new = constant_op.constant(2, name="a_new")
+    result_new = ge.graph_replace(result, {a: a_new})
+    with session.Session() as sess:
+      sess.run(variables.global_variables_initializer())
+      result_val, result_new_val = sess.run([result, result_new])
+    self.assertNear(result_val, 10.0, ERROR_TOLERANCE)
+    self.assertNear(result_new_val, 20.0, ERROR_TOLERANCE)
+
   def test_graph_replace_dict(self):
     ops.reset_default_graph()
     a = constant_op.constant(1.0, name="a")
